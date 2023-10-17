@@ -15,6 +15,10 @@ const opts = {
       value: "description",
     },
     {
+      label: "Image",
+      value: "image",
+    },
+    {
       label: "Local",
       value: "place",
     },
@@ -35,8 +39,10 @@ const opts = {
       value: (record) => {
         if (record.isVegatarianOnDemand) {
           return "Bajo demanda";
-        } else if (record.isVegetarian) {
+        } else if (record.isVegetarian || record.isVegan) {
           return "Si";
+        } else if (record.isVeganOnDemand) {
+          return "Bajo demanda";
         } else {
           return "No";
         }
