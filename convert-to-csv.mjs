@@ -20,7 +20,7 @@ const opts = {
     },
     {
       label: "Nota",
-      value: "rating",
+      value: (record) => Number(record.rating).toString().replace(".", ","),
     },
     {
       label: "Dirección",
@@ -33,10 +33,10 @@ const opts = {
     {
       label: "Apto para vegetarianos",
       value: (record) => {
-        if (record.isVegetarian) {
-          return "Si";
-        } else if (record.isVegatarianOnDemand) {
+        if (record.isVegatarianOnDemand) {
           return "Bajo demanda";
+        } else if (record.isVegetarian) {
+          return "Si";
         } else {
           return "No";
         }
@@ -45,10 +45,10 @@ const opts = {
     {
       label: "Apto para veganos",
       value: (record) => {
-        if (record.isVegan) {
-          return "Si";
-        } else if (record.isVeganOnDemand) {
+        if (record.isVeganOnDemand) {
           return "Bajo demanda";
+        } else if (record.isVegan) {
+          return "Si";
         } else {
           return "No";
         }
