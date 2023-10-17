@@ -79,7 +79,6 @@ export async function extractTapaInfo({ tapa, context }) {
   await tapaDetails.close();
 
   console.log(`[Log]: Data fetched for ${normalizedPlaceName}`);
-
   return {
     tapa: tapaName,
     description,
@@ -104,7 +103,7 @@ function getTapaAndPlace(placeAndTapa) {
 // If a tapa is vegetariana / vegana
 async function getFoodPreferences(tapaDetails) {
   const hasTag = async (tag) => {
-    const tagEl = await tapaDetails.$(`[itemprop='about'] a:text("${tag}")`);
+    const tagEl = await tapaDetails.$(`[itemprop='about'] a:text-is("${tag}")`);
     return !!tagEl;
   };
 
