@@ -31,7 +31,6 @@ export async function extractTapas({ context }) {
 
   const tapasData = [];
   let tapas = await tapasSection.$$(".vc_grid-item");
-  tapas = tapas.slice(90, tapas.length - 1);
 
   for (let tapa of tapas) {
     const data = await extractTapaInfo({ tapa, context });

@@ -4,19 +4,21 @@
   "description": "Web scrapper for Tapapies 2023 (Gastronomic festival of Madrid)",
   "main": "index.js",
   "scripts": {
-    "build": "node ./web-scrapper.mjs"
+    "scrape": "node ./web-scrapper.mjs",
+    "transform-to-csv": "node ./convert-to-csv.mjs"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/cubanducko/tapapies-2023-scrapper.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "cubanducko",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/cubanducko/tapapies-2023-scrapper/issues"
   },
   "homepage": "https://github.com/cubanducko/tapapies-2023-scrapper#readme",
   "dependencies": {
+    "@json2csv/plainjs": "^7.0.3",
     "playwright": "^1.39.0"
   }
 }
