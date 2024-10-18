@@ -1,25 +1,64 @@
-// These addresses confuse google
-const faultyAddresses = new Set([
-  "Caravaca 9 esq. Amparo",
-  "Plza. Lavapiés 5",
-  "Provisiones 18 esq Mesón de Paredes 76",
-]);
+import { CacheManager } from "./cache-manager.mjs";
+
+// Memory cache file
+const memoryCacheFilePath = "./cached-memory.json";
 
 // These places have a different name in google
 const normalizedPlaceNames = new Map();
 normalizedPlaceNames.set("Calvario", "Calvario bar");
 normalizedPlaceNames.set("El Jardín De Lavapiés", "El Jardín del Guaje");
-normalizedPlaceNames.set("K", "K-Sdal");
+normalizedPlaceNames.set(
+  "Casa Jaguar Café",
+  "Casa Jaguar Café | Mercado San Fernando"
+);
+normalizedPlaceNames.set(
+  "Casa Jaguar Mercado",
+  "Casa Jaguar | Mercado de Antón Martín"
+);
+normalizedPlaceNames.set(
+  "Casa María",
+  "Casa María - Mercado de Producto Madrid"
+);
+normalizedPlaceNames.set("Divino", "Divino Madriz");
+normalizedPlaceNames.set("Apululu", "ApuLuLu Pizza Bar");
 normalizedPlaceNames.set("Nuevo Mandela", "Restaurante Mandela África");
 normalizedPlaceNames.set("Shapla II", "Shapla Indian Restaurant");
+normalizedPlaceNames.set("Dakar", "Restaurante Dakar");
+normalizedPlaceNames.set("K-Sdal", "Ksdal");
+normalizedPlaceNames.set("K", "Ksdal");
+normalizedPlaceNames.set("Garibaldi", "Taberna Garibaldi");
+normalizedPlaceNames.set("Hartem", "Hartem Bar");
+normalizedPlaceNames.set("Jam", "Jam taberna");
+normalizedPlaceNames.set("La Cucusa", "Taberna La Cucusa");
+normalizedPlaceNames.set("Majo’S Food", "Majo’S Food mercado");
+
+// These addresses confuse google
+const faultyAddresses = [
+  "Caravaca 9 esq. Amparo",
+  "Plza. Lavapiés 5",
+  "Santa Isabel 5",
+  "Embajadores 41",
+  "Salitre 38",
+  "Ave María 32",
+  "Provisiones 18 esq Mesón de Paredes 76",
+  "Duque de Rivas 5",
+  "Marques de Toca  7",
+  "Pasaje Doré 19  P16 -19",
+];
 
 // These places are not available in google or their data is incomplete / irrelevant
 const placesToSkip = new Set([
-  "K-Sdal",
   "Kebab Lavapiés",
+  "El Rincón De Ruda",
+  "Abascal Olmedo",
   "Oriental Bar",
   "Raj Puth",
+  "Casa Calores",
   "Tazim Food",
+  "La India Tetería",
+  "Serendipia",
+  "Casino Kebab",
+  "Mesón Los Platos"
 ]);
 
 export async function extractTapas({ context }) {
@@ -31,9 +70,10 @@ export async function extractTapas({ context }) {
 
   const tapasData = [];
   let tapas = await tapasSection.$$(".vc_grid-item");
+  const cacheManager = new CacheManager(memoryCacheFilePath);
 
   for (let tapa of tapas) {
-    const data = await extractTapaInfo({ tapa, context });
+    const data = await extractTapaInfo({ tapa, context, cacheManager });
     if (data) {
       tapasData.push(data);
     }
@@ -42,9 +82,18 @@ export async function extractTapas({ context }) {
   return tapasData;
 }
 
-export async function extractTapaInfo({ tapa, context }) {
+export async function extractTapaInfo({ tapa, context, cacheManager }) {
   const link = await tapa.$("a");
   const href = await link.getAttribute("href");
+
+  console.log("[Log]: Fetching tapa for", href);
+
+  const storedData = cacheManager.get(href);
+
+  if (storedData) {
+    return storedData;
+  }
+
   const tapaDetails = await context.newPage();
   await tapaDetails.goto(href);
 
@@ -79,7 +128,8 @@ export async function extractTapaInfo({ tapa, context }) {
   await tapaDetails.close();
 
   console.log(`[Log]: Data fetched for ${normalizedPlaceName}`);
-  return {
+
+  const data = {
     tapa: tapaName,
     description,
     place: normalizedPlaceName,
@@ -87,6 +137,10 @@ export async function extractTapaInfo({ tapa, context }) {
     ...googleData,
     ...foodPreferences,
   };
+
+  cacheManager.updateKey(href, data);
+
+  return data;
 }
 
 function getTapaAndPlace(placeAndTapa) {
@@ -127,9 +181,13 @@ async function getGoogleData({ place, tapaDetails, context }) {
   const address = await addressEl.textContent();
   // Some tokens confuse google maps
   const filteredAddress = address.trim().replace("MSF", "").replace("MAM", "");
-  const searchAddress = faultyAddresses.has(filteredAddress)
+  const searchAddress = faultyAddresses.some((address) =>
+    filteredAddress.includes(address)
+  )
     ? "lavapies"
     : filteredAddress;
+
+  console.log(`[Log]: Fetching Google data for ${place} ${searchAddress}`);
 
   await googleMapsPage.goto(
     `https://www.google.com/maps/search/${place} ${searchAddress}`
@@ -159,15 +217,12 @@ async function getGoogleData({ place, tapaDetails, context }) {
 }
 
 async function getPlaceUrl(googleMapsPage) {
-  await googleMapsPage
-    .locator('[jsaction*="pane.placeActions.share;"]')
-    .first()
-    .click();
+  await googleMapsPage.locator('[data-value*="Compartir"]').first().click();
 
   await googleMapsPage.waitForLoadState("networkidle");
 
   const shareInput = await googleMapsPage
-    .locator('[jsaction*="pane.copyLink.clickInput"]')
+    .locator('[value*="https://maps.app.goo.gl"]')
     .first();
 
   const url = await shareInput.getAttribute("value");
